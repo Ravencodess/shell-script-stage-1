@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Function to check if a user exists
+user_exists() {
+    local username=$1
+    if getent passwd "$username" > /dev/null 2>&1; then
+        return 0  # User exists
+    else
+        return 1  # User does not exist
+    fi
+}
+
+# Function to check if a group exists
+group_exists() {
+    local group_name=$1
+    if getent group "$group_name" > /dev/null 2>&1; then
+        return 0  # Group exists
+    else
+        return 1  # Group does not exist
+    fi
+}
+
 # Function to validate username and group name
 validate_name() {
     local name=$1
@@ -20,26 +40,6 @@ validate_name() {
     return 0
 }
 
-# Function to check if a group exists
-group_exists() {
-    local group_name=$1
-    if getent group "$group_name" > /dev/null 2>&1; then
-        return 0  # Group exists
-    else
-        return 1  # Group does not exist
-    fi
-}
-
-# Function to check if a user exists
-user_exists() {
-    local username=$1
-    if getent passwd "$username" > /dev/null 2>&1; then
-        return 0  # User exists
-    else
-        return 1  # User does not exist
-    fi
-}
-
 # Function to generate a random password
 generate_password() {
     openssl rand -base64 12
@@ -53,7 +53,7 @@ log_action() {
     echo "[$timestamp] $action" | sudo tee -a "$log_file" > /dev/null
 }
 
-# Check if user_info.txt file is provided as an argument
+# Check if the correct number of command line arguments is provided
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <user_info_file>"
     exit 1
@@ -68,7 +68,7 @@ if [ ! -f "$input_file" ]; then
     exit 1
 fi
 
-# Check and create the log_file if it doesn't exist
+# Check and create the log_file if it does not exist
 log_file="/var/log/user_management.log"
 
 if [ ! -f "$log_file" ]; then
@@ -79,7 +79,7 @@ else
     log_action "Skipping creation of: $log_file (Already exists)"
 fi
 
-# Check and create the passwords_file if it doesn't exist
+# Check and create the passwords_file if it does not exist
 passwords_file="/var/secure/user_passwords.txt"
 
 if [ ! -f "$passwords_file" ]; then
@@ -150,7 +150,7 @@ while IFS=';' read -r username groups; do
 
         # Check if the group already exists
         if ! group_exists "$group"; then
-            # Create the group if it doesn't exist
+            # Create the group if it does not exist
             sudo groupadd "$group"
             log_action "Successfully created Group: $group"
         else
@@ -166,7 +166,7 @@ while IFS=';' read -r username groups; do
     log_action "Updated permissions for home directory: '/home/$username' of User: $username to '$username:$username'"
 
     # Log the user created action
-    log_action "Succesfully Created user: $username with Groups: $username ${group_array[*]}"
+    log_action "Successfully Created user: $username with Groups: $username ${group_array[*]}"
 
     # Store username and password in secure file
     echo "$username,$password" | sudo tee -a "$passwords_file" > /dev/null
